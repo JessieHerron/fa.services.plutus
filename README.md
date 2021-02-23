@@ -70,3 +70,7 @@ In order to contribute, simply fork the repository, make changes and create a pu
 
 ## Support
 For any queries, contact dean.martin@frostaura.net.
+
+## References
+- [Telegram Bot Library for Dotnet](https://github.com/TelegramBots/telegram.bot)
+- [Binance Library for Dotnet](https://github.com/JKorf/Binance.Net)
