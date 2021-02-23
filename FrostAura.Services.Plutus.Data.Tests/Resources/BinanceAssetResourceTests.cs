@@ -138,9 +138,9 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
 
       Received.InOrder(async () =>
       {
-        await market.GetKlinesAsync(Arg.Is<string>(a => a == symbols[0]), KlineInterval.FifteenMinutes, from, to, ct: token);
-        await market.GetKlinesAsync(Arg.Is<string>(a => a == symbols[1]), KlineInterval.FifteenMinutes, from, to, ct: token);
-        await market.GetKlinesAsync(Arg.Is<string>(a => a == symbols[2]), KlineInterval.FifteenMinutes, from, to, ct: token);
+        await market.GetKlinesAsync(Arg.Is<string>(a => a == symbols[0].Replace("/", string.Empty)), KlineInterval.FifteenMinutes, from, to, ct: token);
+        await market.GetKlinesAsync(Arg.Is<string>(a => a == symbols[1].Replace("/", string.Empty)), KlineInterval.FifteenMinutes, from, to, ct: token);
+        await market.GetKlinesAsync(Arg.Is<string>(a => a == symbols[2].Replace("/", string.Empty)), KlineInterval.FifteenMinutes, from, to, ct: token);
       });
     }
 
@@ -160,7 +160,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
         .GetKlinesAsync(Arg.Any<string>(), KlineInterval.FifteenMinutes, from, to, ct: token)
         .Returns(result);
       market
-        .GetKlinesAsync(symbols.First(), KlineInterval.FifteenMinutes, from, to, ct: token)
+        .GetKlinesAsync(symbols.First().Replace("/", string.Empty), KlineInterval.FifteenMinutes, from, to, ct: token)
         .Returns(errorResult);
 
       var actual = await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token);
@@ -249,20 +249,6 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
         Assert.Equal(888, candles[0].TradeCount);
         Assert.Equal(888, candles[1].TradeCount);
       }
-    }
-
-    [Fact]
-    public async Task GetCandlestickDataForPairsAsync_WhenRanToCompletion_ShouldLogTiming()
-    {
-      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
-      var instance = GetInstance(logger: logger);
-      var expectedMessageBeginning = $"Candlestick data fetch completed in {0} seconds.";
-
-      var actual = await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token);
-
-      //logger
-      //  .Received()
-      //  .LogInformation(Arg.Is<string>(a => a.StartsWith(expectedMessageBeginning)));
     }
 
     [Fact]

@@ -89,7 +89,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
             return await _client
               .Spot
               .Market
-              .GetKlinesAsync(s, (KlineInterval)((int)interval), from, to, ct: token);
+              .GetKlinesAsync(s.Replace("/", string.Empty), (KlineInterval)((int)interval), from, to, ct: token);
           });
 
         await Task.WhenAll(requestsTasks.Select(r => r.Value));
@@ -99,7 +99,6 @@ namespace FrostAura.Services.Plutus.Data.Resources
         var errors = responses
           .Where(r => !r.Value.Success);
 
-        // Process errors.
         foreach (var error in errors)
         {
           _logger.LogWarning($"Failed to fetch candlestick data for symbol '{error.Key}' with code {error.Value.Error.Code} and message '{error.Value.Error.Message}'.");
@@ -129,7 +128,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
 
       }
 
-      _logger.LogInformation($"Candlestick data fetch completed in {timer.Stopwatch.Elapsed.TotalSeconds} seconds.");
+      _logger.LogInformation($"Candlestick data fetch completed in {(int)timer.Stopwatch.Elapsed.TotalSeconds} seconds.");
 
       return response;
     }

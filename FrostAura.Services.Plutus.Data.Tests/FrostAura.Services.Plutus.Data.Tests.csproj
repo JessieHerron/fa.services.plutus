@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FrostAura.Services.Plutus.Data\FrostAura.Services.Plutus.Data.csproj" />
+    <ProjectReference Include="..\FrostAura.Services.Plutus.Shared\FrostAura.Services.Plutus.Shared.csproj" />
   </ItemGroup>
 
 </Project>
