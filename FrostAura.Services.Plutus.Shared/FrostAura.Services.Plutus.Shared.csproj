@@ -9,8 +9,4 @@
     <PackageReference Include="FrostAura.Libraries.Data" Version="1.1.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
-
 </Project>

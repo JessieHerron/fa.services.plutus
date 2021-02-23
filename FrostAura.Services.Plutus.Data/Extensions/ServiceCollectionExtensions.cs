@@ -1,4 +1,6 @@
-﻿using FrostAura.Services.Plutus.Data.Interfaces;
+﻿using Binance.Net;
+using Binance.Net.Interfaces;
+using FrostAura.Services.Plutus.Data.Interfaces;
 using FrostAura.Services.Plutus.Data.Resources;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -39,8 +41,8 @@ namespace FrostAura.Services.Plutus.Data.Extensions
           .AddDbContext<PlutusDbContext>(config =>
           {
             config
-                      .UseSqlServer(plutusConnectionString)
-                      .EnableSensitiveDataLogging();
+              .UseSqlServer(plutusConnectionString)
+              .EnableSensitiveDataLogging();
           })
           .AddOptions();
     }
@@ -53,7 +55,10 @@ namespace FrostAura.Services.Plutus.Data.Extensions
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
       return services
-        .AddSingleton<IConfigurationResource, OptionsConfigurationResource>();
+        .AddSingleton<IConfigurationResource, OptionsConfigurationResource>()
+        .AddSingleton<IBinanceSocketClient, BinanceSocketClient>()
+        .AddTransient<IBinanceClient, BinanceClient>()
+        .AddSingleton<IAssetResource, BinanceAssetResource>();
     }
   }
 }

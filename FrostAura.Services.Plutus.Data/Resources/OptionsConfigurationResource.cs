@@ -1,4 +1,9 @@
 ﻿using FrostAura.Services.Plutus.Data.Interfaces;
+using FrostAura.Services.Plutus.Shared.Consts;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FrostAura.Services.Plutus.Data.Resources
 {
@@ -8,25 +13,23 @@ namespace FrostAura.Services.Plutus.Data.Resources
   public class OptionsConfigurationResource : IConfigurationResource
   {
     /// <summary>
-    /// Constructor to provide dependencies.
+    /// Get the currently configured exchange use.
     /// </summary>
-    /// <param name="options">Applications config MQTT configuration.</param>
-    /*public OptionsConfigurationResource(IOptions<List<MqttAttributeProviderConfig>> options)
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>Configured exchange.</returns>
+    public Task<SupportedExchange> GetExchangeAsync(CancellationToken token)
     {
-        _mqttProvidersConfiguration = options
-            .ThrowIfNull(nameof(options))
-            .Value
-            .ThrowIfNull(nameof(options.Value))
-            .First();
-    }*/
+      throw new NotImplementedException();
+    }
 
     /// <summary>
-    /// Get the MQTT provider configuration.
+    /// Get the pair list to use. 
     /// </summary>
-    /// <returns>MQTT provider configuration.</returns>
-    /*public MqttAttributeProviderConfig GetMqttAttributeProviders()
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>Pair list to use.</returns>
+    public Task<IEnumerable<string>> GetPairsAsync(CancellationToken token)
     {
-        return _mqttProvidersConfiguration;
-    }*/
+      throw new NotImplementedException();
+    }
   }
 }
