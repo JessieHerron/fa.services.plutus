@@ -4,7 +4,7 @@ FrostAura Plutus is a portfolio management and alghorithmic trading engine.
 ## Status
 | Project | Build | Test Coverage
 | --- | --- | --- |
-| FrostAura.Services.Plutus | ![TravisCI](https://travis-ci.org/faGH/fa.services.plutus.svg?branch=master) | YES |
+| FrostAura.Services.Plutus | ![TravisCI](https://travis-ci.org/faGH/fa.services.plutus.svg?branch=topic%2Fdeanm%2Fplutus-dotnet) | YES |
 ## Database Migrations (EF Core)
 ### Overview
 For migrations, we need to add them initially and update or re-add them each time the context changes. The actual execution of migrations happen on application start and is autonomous.
