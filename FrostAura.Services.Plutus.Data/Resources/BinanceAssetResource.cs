@@ -73,6 +73,9 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <returns>A dictionary with the pair as the key and the candlestick data as the value.</returns>
     public async Task<IDictionary<string, IEnumerable<Candlestick>>> GetCandlestickDataForPairsAsync(IEnumerable<string> symbols, Interval interval, DateTime from, DateTime to, CancellationToken token)
     {
+      if (!symbols.ThrowIfNull(nameof(symbols)).Any()) 
+        throw new ArgumentException("At least one symbol should be provided.", nameof(symbols));
+
       _logger.LogInformation($"Fetching candlestick data from Binance for {symbols.Count()} symbols at '{Enum.GetName(typeof(Interval), (int)interval)}' interval from {from.ToShortDateString()} to {to.ToShortDateString()}.");
 
       var timer = new TimingDecorator();

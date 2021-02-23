@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace FrostAura.Services.Plutus.Shared.Models
 {
   /// <summary>
   /// Model representing a candlestick.
   /// </summary>
+  [DebuggerDisplay("Open: {Open}, Close: {Close}, High: {High}, Low: {Low}, Time: {CloseTime}")]
   public class Candlestick
   {
     /// <summary>
