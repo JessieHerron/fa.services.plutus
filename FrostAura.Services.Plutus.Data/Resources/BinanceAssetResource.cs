@@ -87,7 +87,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
       {
         var requestsTasks = symbols
           .ToDictionary(
-            s => s, 
+            s => s,
             s => this.GetKlinesForSymbolRecursivelyAsync(s.Replace("/", string.Empty), (KlineInterval)((int)interval), from, to, token));
 
         // Parallel execution does not work well due to the threshold that Binance enforces on requests per minute.
@@ -102,19 +102,20 @@ namespace FrostAura.Services.Plutus.Data.Resources
         var responses = requestsTasks
           .ToDictionary(r => r.Key, r => r.Value.Result);
         var errors = responses
-          .Where(r => !r.Value.Success);
+          .Where(r => !r.Value.BinanceResponse.Success);
 
         foreach (var error in errors)
         {
-          _logger.LogWarning($"Failed to fetch candlestick data for symbol '{error.Key}' with code {error.Value.Error.Code} and message '{error.Value.Error.Message}'.");
+          _logger.LogError($"Failed to fetch candlestick data for symbol '{error.Key}' with code {error.Value.BinanceResponse.Error.Code} and message '{error.Value.BinanceResponse.Error.Message}' after {error.Value.Iteration} iterations.");
         }
 
         response = responses
-          .Where(r => r.Value.Success)
+          .Where(r => r.Value.BinanceResponse.Success)
           .ToDictionary(r => r.Key, r =>
           {
             var candlesticks = r
               .Value
+              .BinanceResponse
               .Data
               .Select(i => new Candlestick
               {
@@ -133,7 +134,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
           });
       }
 
-      _logger.LogInformation($"Candlestick data fetch completed in {(int)timer.Stopwatch.Elapsed.TotalSeconds} seconds.");
+      _logger.LogInformation($"Fetching candlestick data from Binance for {symbols.Count()} symbols fetch completed in {(int)timer.Stopwatch.Elapsed.TotalSeconds} seconds.");
 
       return response;
     }
@@ -146,48 +147,64 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="from">Range from which to fetch data for.</param>
     /// <param name="to">Range to which to fetch data for.</param>
     /// <param name="token">Cancellation token.</param>
-    /// <returns></returns>
-    private async Task<WebCallResult<IEnumerable<IBinanceKline>>> GetKlinesForSymbolRecursivelyAsync(string symbol, KlineInterval interval, DateTime from, DateTime to, CancellationToken token)
+    /// <param name="previousIteration">Iteration count of the previous method call up the recursion chain.</param>
+    /// <returns>The number of iterations that it took to get to the final result as well as the final result from Binance with all the candles stitched together.</returns>
+    private async Task<(int Iteration, WebCallResult<IEnumerable<IBinanceKline>> BinanceResponse)> GetKlinesForSymbolRecursivelyAsync(string symbol, KlineInterval interval, DateTime from, DateTime to, CancellationToken token, int previousIteration = 0)
     {
-      var result = await _client
-        .Spot
-        .Market
-        .GetKlinesAsync(symbol, interval, startTime: from, endTime: to, ct: token);
+      var timer = new TimingDecorator();
 
-      // If error or no results returned, propagate the error all the way up.
-      if (!result.Success)
+      using (timer)
       {
-        if(result.ResponseStatusCode == System.Net.HttpStatusCode.TooManyRequests)
-        {
-          // Enforce artificial delay to allow for bypassing Binance throughput threshold.
-          await Task.Delay(TimeSpan.FromSeconds(30));
+        const int BACKOFF_IN_SECONDS = 30;
+        var currentIteration = previousIteration + 1;
+        var result = await _client
+          .Spot
+          .Market
+          .GetKlinesAsync(symbol, interval, startTime: from, endTime: to, ct: token);
 
-          return await this.GetKlinesForSymbolRecursivelyAsync(symbol, interval, from, to, token);
+        _logger.LogDebug($"({currentIteration}) Fetching candlestick data from Binance for symbol {symbol} at '{Enum.GetName(typeof(Interval), (int)interval)}' interval from {from.ToShortDateString()} to {to.ToShortDateString()}.");
+
+        // If error or no results returned, propagate the error all the way up.
+        if (!result.Success)
+        {
+          if (result.ResponseStatusCode == System.Net.HttpStatusCode.TooManyRequests)
+          {
+            // Enforce artificial delay to allow for bypassing Binance throughput threshold.
+            await Task.Delay(TimeSpan.FromSeconds(BACKOFF_IN_SECONDS * currentIteration));
+
+            return await this.GetKlinesForSymbolRecursivelyAsync(symbol, interval, from, to, token, currentIteration);
+          }
+
+          return (currentIteration, result);
+        };
+        if (!result.Data.Any()) return (currentIteration, result);
+
+        // Check if the last item matches the to date we actually want.
+        var itemsList = result.Data.ToList();
+        var lastItem = itemsList.Last();
+        var lastItemMatchesSpecifiedEndDate = lastItem.OpenTime.Year == to.Year && lastItem.OpenTime.Month == to.Month && lastItem.OpenTime.Day == to.Day;
+
+        if (lastItemMatchesSpecifiedEndDate) return (currentIteration, result);
+
+        // If not, recursively fetch the rest of the data starting from the last open date we have till the to date.
+        var nextPeriodResults = await this.GetKlinesForSymbolRecursivelyAsync(symbol, interval, lastItem.OpenTime, to, token, currentIteration);
+
+        // If error, propagate the error all the way up.
+        if (!nextPeriodResults.BinanceResponse.Success) return (nextPeriodResults.Iteration, nextPeriodResults.BinanceResponse);
+
+        // Merge previous and nested results together.
+        var resultList = (List<BinanceSpotKline>)result.Data;
+
+        resultList.AddRange((List<BinanceSpotKline>)nextPeriodResults.BinanceResponse.Data);
+
+        // If this is the top-level node's completion, log it.
+        if (previousIteration == 0)
+        {
+          _logger.LogInformation($"Fetching candlestick data from Binance for symbol '{symbol}' fetch completed in {(int)timer.Stopwatch.Elapsed.TotalSeconds} seconds after {nextPeriodResults.Iteration} iterations.");
         }
 
-        return result;
-      };
-      if (!result.Data.Any()) return result;
-
-      // Check if the last item matches the to date we actually want.
-      var itemsList = result.Data.ToList();
-      var lastItem = itemsList.Last();
-      var lastItemMatchesSpecifiedEndDate = lastItem.OpenTime.Year == to.Year && lastItem.OpenTime.Month == to.Month && lastItem.OpenTime.Day == to.Day;
-
-      if (lastItemMatchesSpecifiedEndDate) return result;
-
-      // If not, recursively fetch the rest of the data starting from the last open date we have till the to date.
-      var gapFillingResults = await this.GetKlinesForSymbolRecursivelyAsync(symbol, interval, lastItem.OpenTime, to, token);
-
-      // If error, propagate the error all the way up.
-      if (!gapFillingResults.Success) return gapFillingResults;
-
-      // Merge previous and nested results together.
-      var resultList = (List<BinanceSpotKline>)result.Data;
-
-      resultList.AddRange((List<BinanceSpotKline>)gapFillingResults.Data);
-
-      return result;
+        return (nextPeriodResults.Iteration, result);
+      }
     }
 
     /// <summary>

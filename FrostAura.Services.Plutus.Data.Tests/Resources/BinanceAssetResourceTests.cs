@@ -22,7 +22,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       {
         "RCN/BTC",
         "LRC/BTC",
-        "SUSHI/BTC"
+        "XRP/BTC"
       };
     Interval interval = Interval.FifteenMinutes;
     DateTime from = DateTime.UtcNow.AddDays(-90);

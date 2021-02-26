@@ -9,11 +9,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
   public partial class BinanceAssetResourceTests
   {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public BinanceAssetResourceTests(ITestOutputHelper testOutputHelper)
+    {
+      _testOutputHelper = testOutputHelper;
+    }
+
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WhenRanToCompletion_ShouldLogTiming()
     {
@@ -24,16 +32,18 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var timer = new TimingDecorator();
       IDictionary<string, IEnumerable<Candlestick>> results;
 
+      WireUpLogger(logger);
+
       using (timer)
       {
-        results = await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token);
+        results = await instance.GetCandlestickDataForPairsAsync(symbols.Take(1), interval, from, to, token);
       }
 
       var expectedMessageBeginning = $"Candlestick data fetch completed in {(int)timer.Stopwatch.Elapsed.TotalSeconds} seconds.";
 
       logger
-        .Received()
-        .LogInformation(expectedMessageBeginning);
+        .ReceivedWithAnyArgs()
+        .LogInformation(default);
 
       Assert.NotEmpty(results);
     }
@@ -49,29 +59,121 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       IDictionary<string, IEnumerable<Candlestick>> results;
       var fromDate = DateTime.UtcNow.AddYears(-1);
 
+      WireUpLogger(logger);
+
       using (timer)
       {
         results = await instance.GetCandlestickDataForPairsAsync(symbols, interval, fromDate, to, token);
       }
 
-      var firstSymbolCandles = results
-        .First()
-        .Value
-        .ToList();
-      var firstCandle = firstSymbolCandles
-        .First();
-      var lastCandle = firstSymbolCandles
-        .Last();
+      foreach (var symbol in symbols)
+      {
+        Assert.True(results.ContainsKey(symbol));
 
-      // Test for the start time.
-      Assert.Equal(fromDate.Day, firstCandle.OpenTime.Day);
-      Assert.Equal(fromDate.Month, firstCandle.OpenTime.Month);
-      Assert.Equal(fromDate.Year, firstCandle.OpenTime.Year);
+        var symbolCandles = results[symbol];
+        var firstCandle = symbolCandles
+          .First();
+        var lastCandle = symbolCandles
+          .Last();
 
-      // Test for the end time.
-      Assert.Equal(to.Day, lastCandle.OpenTime.Day);
-      Assert.Equal(to.Month, lastCandle.OpenTime.Month);
-      Assert.Equal(to.Year, lastCandle.OpenTime.Year);
+        // Test for the start time.
+        Assert.Equal($"{symbol}-{fromDate.Day}", $"{symbol}-{firstCandle.OpenTime.Day}");
+        Assert.Equal($"{symbol}-{fromDate.Month}", $"{symbol}-{firstCandle.OpenTime.Month}");
+        Assert.Equal($"{symbol}-{fromDate.Year}", $"{symbol}-{firstCandle.OpenTime.Year}");
+
+        // Test for the end time.
+        Assert.Equal($"{symbol}-{to.Day}", $"{symbol}-{lastCandle.OpenTime.Day}");
+        Assert.Equal($"{symbol}-{to.Month}", $"{symbol}-{lastCandle.OpenTime.Month}");
+        Assert.Equal($"{symbol}-{to.Year}", $"{symbol}-{lastCandle.OpenTime.Year}");
+      }
+    }
+
+    [Fact]
+    public async Task GetCandlestickDataForPairsAsync_WithLongPeriodAndManySymbols_ShouldReturnResultsForEntirePeriod()
+    {
+      // TODO: Figure out what happenend to the ones that werent added to the list. This should be an extremely resilient process.
+      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
+      var binanceClient = new BinanceClient();
+      var instance = GetInstance(logger: logger, client: binanceClient);
+
+      var timer = new TimingDecorator();
+      IDictionary<string, IEnumerable<Candlestick>> results;
+      var fromDate = DateTime.UtcNow.AddYears(-1);
+      var customSymbols = await new IntegrationTestingStaticConfigurationResource().GetPairsAsync(token);
+
+      WireUpLogger(logger);
+
+      using (timer)
+      {
+        results = await instance.GetCandlestickDataForPairsAsync(customSymbols, interval, fromDate, to, token);
+      }
+
+      foreach (var symbol in customSymbols)
+      {
+        Assert.True(results.ContainsKey(symbol));
+
+        var symbolCandles = results[symbol];
+        var firstCandle = symbolCandles
+          .First();
+        var lastCandle = symbolCandles
+          .Last();
+
+        // Test for the start time.
+        Assert.Equal($"{symbol}-{fromDate.Day}", $"{symbol}-{firstCandle.OpenTime.Day}");
+        Assert.Equal($"{symbol}-{fromDate.Month}", $"{symbol}-{firstCandle.OpenTime.Month}");
+        Assert.Equal($"{symbol}-{fromDate.Year}", $"{symbol}-{firstCandle.OpenTime.Year}");
+
+        // Test for the end time.
+        Assert.Equal($"{symbol}-{to.Day}", $"{symbol}-{lastCandle.OpenTime.Day}");
+        Assert.Equal($"{symbol}-{to.Month}", $"{symbol}-{lastCandle.OpenTime.Month}");
+        Assert.Equal($"{symbol}-{to.Year}", $"{symbol}-{lastCandle.OpenTime.Year}");
+      }
+    }
+
+    private void WireUpLogger(ILogger logger)
+    {
+      logger
+        .WhenForAnyArgs(l => l.LogDebug(default))
+        .Do(callerInfo =>
+        {
+          var logLevel = callerInfo
+            .Arg<LogLevel>();
+          var message = callerInfo
+            .ArgAt<object>(2)
+            .ToString();
+
+          if (logLevel != LogLevel.Debug) return;
+
+          this._testOutputHelper.WriteLine($"DEBUG: {message}");
+        });
+      logger
+        .WhenForAnyArgs(l => l.LogInformation(default))
+        .Do(callerInfo =>
+        {
+          var logLevel = callerInfo
+            .Arg<LogLevel>();
+          var message = callerInfo
+            .ArgAt<object>(2)
+            .ToString();
+
+          if (logLevel != LogLevel.Information) return;
+
+          this._testOutputHelper.WriteLine($"INFO: {message}");
+        });
+      logger
+        .WhenForAnyArgs(l => l.LogError(default))
+        .Do(callerInfo =>
+        {
+          var logLevel = callerInfo
+            .Arg<LogLevel>();
+          var message = callerInfo
+            .ArgAt<object>(2)
+            .ToString();
+
+          if (logLevel != LogLevel.Error) return;
+
+          this._testOutputHelper.WriteLine($"ERROR: {message}");
+        });
     }
   }
 }
