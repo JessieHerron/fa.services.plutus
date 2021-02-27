@@ -22,6 +22,10 @@ namespace FrostAura.Services.Plutus.Data.Resources
   public class BinanceAssetResource : IAssetResource, IAsyncDisposable
   {
     /// <summary>
+    /// Exponential backoff based seconds value.
+    /// </summary>
+    private const int BACKOFF_IN_SECONDS = 30;
+    /// <summary>
     /// Binance rest client.
     /// </summary>
     private readonly IBinanceClient _client;
@@ -90,10 +94,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
             s => s,
             s => this.GetKlinesForSymbolRecursivelyAsync(s.Replace("/", string.Empty), (KlineInterval)((int)interval), from, to, token));
 
-        // Parallel execution does not work well due to the threshold that Binance enforces on requests per minute.
-        //await Task.WhenAll(requestsTasks.Select(r => r.Value));
-
-        // Force sequential processing.
+        // Force sequential processing as parallel execution does not work well due to the threshold that Binance enforces on requests per minute.
         foreach (var task in requestsTasks.Select(t => t.Value))
         {
           await task;
@@ -155,7 +156,6 @@ namespace FrostAura.Services.Plutus.Data.Resources
 
       using (timer)
       {
-        const int BACKOFF_IN_SECONDS = 30;
         var currentIteration = previousIteration + 1;
         var result = await _client
           .Spot
@@ -185,6 +185,16 @@ namespace FrostAura.Services.Plutus.Data.Resources
         var lastItemMatchesSpecifiedEndDate = lastItem.OpenTime.Year == to.Year && lastItem.OpenTime.Month == to.Month && lastItem.OpenTime.Day == to.Day;
 
         if (lastItemMatchesSpecifiedEndDate) return (currentIteration, result);
+
+        // Check whether a point of convergence is reached. I.e. when no additional candlestick information could be fetched from the previous iteration.
+        var convergenceReached = from == lastItem.OpenTime;
+
+        if (convergenceReached)
+        {
+          _logger.LogWarning($"({currentIteration}) No additional candlestick data from Binance for symbol '{symbol}' could be fetched from the pervious iteration. Returning what was fetched up until this point.");
+
+          return (currentIteration, result);
+        }
 
         // If not, recursively fetch the rest of the data starting from the last open date we have till the to date.
         var nextPeriodResults = await this.GetKlinesForSymbolRecursivelyAsync(symbol, interval, lastItem.OpenTime, to, token, currentIteration);

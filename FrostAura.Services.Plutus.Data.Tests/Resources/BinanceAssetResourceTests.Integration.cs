@@ -108,10 +108,15 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
         results = await instance.GetCandlestickDataForPairsAsync(customSymbols, interval, fromDate, to, token);
       }
 
+      var resultContainsDataForAllSymbols = symbols
+        .All(s => results.ContainsKey(s));
+
+      Assert.True(resultContainsDataForAllSymbols);
+
+      var messagesForSymbolsWithoutSufficientInformation = new List<string>();
+
       foreach (var symbol in customSymbols)
       {
-        Assert.True(results.ContainsKey(symbol));
-
         var symbolCandles = results[symbol];
         var firstCandle = symbolCandles
           .First();
@@ -119,15 +124,16 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
           .Last();
 
         // Test for the start time.
-        Assert.Equal($"{symbol}-{fromDate.Day}", $"{symbol}-{firstCandle.OpenTime.Day}");
-        Assert.Equal($"{symbol}-{fromDate.Month}", $"{symbol}-{firstCandle.OpenTime.Month}");
-        Assert.Equal($"{symbol}-{fromDate.Year}", $"{symbol}-{firstCandle.OpenTime.Year}");
+        if (fromDate != firstCandle.OpenTime)
+          messagesForSymbolsWithoutSufficientInformation.Add($"First candlestick for symbol '{symbol}' ({firstCandle.OpenTime}) did not match specified from time {from}.");
 
         // Test for the end time.
-        Assert.Equal($"{symbol}-{to.Day}", $"{symbol}-{lastCandle.OpenTime.Day}");
-        Assert.Equal($"{symbol}-{to.Month}", $"{symbol}-{lastCandle.OpenTime.Month}");
-        Assert.Equal($"{symbol}-{to.Year}", $"{symbol}-{lastCandle.OpenTime.Year}");
+        if (to != lastCandle.OpenTime)
+          messagesForSymbolsWithoutSufficientInformation.Add($"Last candlestick for symbol '{symbol}' ({lastCandle.OpenTime}) did not match specified to time {to}.");
       }
+
+      messagesForSymbolsWithoutSufficientInformation
+        .ForEach(i => this._testOutputHelper.WriteLine($"MISSING: {messagesForSymbolsWithoutSufficientInformation}"));
     }
 
     private void WireUpLogger(ILogger logger)
@@ -159,6 +165,20 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
           if (logLevel != LogLevel.Information) return;
 
           this._testOutputHelper.WriteLine($"INFO: {message}");
+        });
+      logger
+        .WhenForAnyArgs(l => l.LogWarning(default))
+        .Do(callerInfo =>
+        {
+          var logLevel = callerInfo
+            .Arg<LogLevel>();
+          var message = callerInfo
+            .ArgAt<object>(2)
+            .ToString();
+
+          if (logLevel != LogLevel.Warning) return;
+
+          this._testOutputHelper.WriteLine($"WARNING: {message}");
         });
       logger
         .WhenForAnyArgs(l => l.LogError(default))
