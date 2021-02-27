@@ -15,6 +15,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
   public partial class BinanceApiResourceTests
   {
+    private const string SKIP_JUSTIFICATION_MESSAGE = "Skipping due to being a long running integration test.";
     private readonly ITestOutputHelper _testOutputHelper;
 
     public BinanceApiResourceTests(ITestOutputHelper testOutputHelper)
@@ -22,7 +23,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       _testOutputHelper = testOutputHelper;
     }
 
-    [Fact]
+    [Fact(Skip = SKIP_JUSTIFICATION_MESSAGE)]
     public async Task GetCandlestickDataForPairsAsync_WhenRanToCompletion_ShouldLogTiming()
     {
       var logger = Substitute.For<ILogger<BinanceApiResource>>();
@@ -48,7 +49,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       Assert.NotEmpty(results);
     }
 
-    [Fact]
+    [Fact(Skip = SKIP_JUSTIFICATION_MESSAGE)]
     public async Task GetCandlestickDataForPairsAsync_WithLongPeriod_ShouldReturnResultsForEntirePeriod()
     {
       var logger = Substitute.For<ILogger<BinanceApiResource>>();
@@ -88,7 +89,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       }
     }
 
-    [Fact]
+    [Fact(Skip = SKIP_JUSTIFICATION_MESSAGE)]
     public async Task GetCandlestickDataForPairsAsync_WithLongPeriodAndManySymbols_ShouldReturnResultsForEntirePeriod()
     {
       var logger = Substitute.For<ILogger<BinanceApiResource>>();
