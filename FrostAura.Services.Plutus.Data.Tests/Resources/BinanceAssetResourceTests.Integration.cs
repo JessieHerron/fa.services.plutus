@@ -91,7 +91,6 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WithLongPeriodAndManySymbols_ShouldReturnResultsForEntirePeriod()
     {
-      // TODO: Figure out what happenend to the ones that werent added to the list. This should be an extremely resilient process.
       var logger = Substitute.For<ILogger<BinanceAssetResource>>();
       var binanceClient = new BinanceClient();
       var instance = GetInstance(logger: logger, client: binanceClient);
@@ -133,7 +132,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       }
 
       messagesForSymbolsWithoutSufficientInformation
-        .ForEach(i => this._testOutputHelper.WriteLine($"MISSING: {messagesForSymbolsWithoutSufficientInformation}"));
+        .ForEach(i => this._testOutputHelper.WriteLine($"MISSING: {i}"));
     }
 
     private void WireUpLogger(ILogger logger)
