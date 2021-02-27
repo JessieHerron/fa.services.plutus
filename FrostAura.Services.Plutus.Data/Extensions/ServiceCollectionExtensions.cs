@@ -55,7 +55,6 @@ namespace FrostAura.Services.Plutus.Data.Extensions
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
       return services
-        .AddSingleton<IConfigurationResource, OptionsConfigurationResource>()
         .AddSingleton<IBinanceSocketClient, BinanceSocketClient>()
         .AddTransient<IBinanceClient, BinanceClient>()
         .AddSingleton<ICandlestickResource, BinanceApiResource>()

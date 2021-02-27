@@ -13,11 +13,11 @@ using Xunit.Abstractions;
 
 namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
-  public partial class BinanceCandlestickResourceTests
+  public partial class BinanceApiResourceTests
   {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    public BinanceCandlestickResourceTests(ITestOutputHelper testOutputHelper)
+    public BinanceApiResourceTests(ITestOutputHelper testOutputHelper)
     {
       _testOutputHelper = testOutputHelper;
     }

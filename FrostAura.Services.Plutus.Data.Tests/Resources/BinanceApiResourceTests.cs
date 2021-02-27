@@ -16,7 +16,7 @@ using Xunit;
 
 namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
-  public partial class BinanceCandlestickResourceTests
+  public partial class BinanceApiResourceTests
   {
     List<string> symbols = new List<string>
       {
