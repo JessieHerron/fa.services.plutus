@@ -123,11 +123,11 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
           .Last();
 
         // Test for the start time.
-        if (fromDate != firstCandle.OpenTime)
+        if (fromDate.Date != firstCandle.OpenTime.Date)
           messagesForSymbolsWithoutSufficientInformation.Add($"First candlestick for symbol '{symbol}' ({firstCandle.OpenTime}) did not match specified from time {from}.");
 
         // Test for the end time.
-        if (to != lastCandle.OpenTime)
+        if (to.Date != lastCandle.OpenTime.Date)
           messagesForSymbolsWithoutSufficientInformation.Add($"Last candlestick for symbol '{symbol}' ({lastCandle.OpenTime}) did not match specified to time {to}.");
       }
 
