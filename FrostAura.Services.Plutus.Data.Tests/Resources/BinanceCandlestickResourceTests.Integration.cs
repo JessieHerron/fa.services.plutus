@@ -13,11 +13,11 @@ using Xunit.Abstractions;
 
 namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
-  public partial class BinanceAssetResourceTests
+  public partial class BinanceCandlestickResourceTests
   {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    public BinanceAssetResourceTests(ITestOutputHelper testOutputHelper)
+    public BinanceCandlestickResourceTests(ITestOutputHelper testOutputHelper)
     {
       _testOutputHelper = testOutputHelper;
     }
@@ -25,7 +25,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WhenRanToCompletion_ShouldLogTiming()
     {
-      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
+      var logger = Substitute.For<ILogger<BinanceApiResource>>();
       var binanceClient = new BinanceClient();
       var instance = GetInstance(logger: logger, client: binanceClient);
 
@@ -36,7 +36,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
 
       using (timer)
       {
-        results = await instance.GetCandlestickDataForPairsAsync(symbols.Take(1), interval, from, to, token);
+        results = await instance.GetCandlesticksAsync(symbols.Take(1), interval, from, to, token);
       }
 
       var expectedMessageBeginning = $"Candlestick data fetch completed in {(int)timer.Stopwatch.Elapsed.TotalSeconds} seconds.";
@@ -51,7 +51,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WithLongPeriod_ShouldReturnResultsForEntirePeriod()
     {
-      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
+      var logger = Substitute.For<ILogger<BinanceApiResource>>();
       var binanceClient = new BinanceClient();
       var instance = GetInstance(logger: logger, client: binanceClient);
 
@@ -63,7 +63,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
 
       using (timer)
       {
-        results = await instance.GetCandlestickDataForPairsAsync(symbols, interval, fromDate, to, token);
+        results = await instance.GetCandlesticksAsync(symbols, interval, fromDate, to, token);
       }
 
       foreach (var symbol in symbols)
@@ -91,20 +91,20 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WithLongPeriodAndManySymbols_ShouldReturnResultsForEntirePeriod()
     {
-      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
+      var logger = Substitute.For<ILogger<BinanceApiResource>>();
       var binanceClient = new BinanceClient();
       var instance = GetInstance(logger: logger, client: binanceClient);
 
       var timer = new TimingDecorator();
       IDictionary<string, IEnumerable<Candlestick>> results;
       var fromDate = DateTime.UtcNow.AddYears(-1);
-      var customSymbols = await new IntegrationTestingStaticConfigurationResource().GetPairsAsync(token);
+      var customSymbols = await new StaticConfigurationResource().GetSymbolsAsync(token);
 
       WireUpLogger(logger);
 
       using (timer)
       {
-        results = await instance.GetCandlestickDataForPairsAsync(customSymbols, interval, fromDate, to, token);
+        results = await instance.GetCandlesticksAsync(customSymbols, interval, fromDate, to, token);
       }
 
       var resultContainsDataForAllSymbols = symbols

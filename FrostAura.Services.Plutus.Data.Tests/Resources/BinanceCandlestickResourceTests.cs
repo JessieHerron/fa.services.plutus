@@ -16,7 +16,7 @@ using Xunit;
 
 namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
-  public partial class BinanceAssetResourceTests
+  public partial class BinanceCandlestickResourceTests
   {
     List<string> symbols = new List<string>
       {
@@ -33,10 +33,10 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     public void Constructor_WithInvalidClient_ShouldThrow()
     {
       IBinanceClient client = null;
-      var actual = Assert.Throws<ArgumentNullException>(() => new BinanceAssetResource(
+      var actual = Assert.Throws<ArgumentNullException>(() => new BinanceApiResource(
           client,
           Substitute.For<IBinanceSocketClient>(),
-          Substitute.For<ILogger<BinanceAssetResource>>()
+          Substitute.For<ILogger<BinanceApiResource>>()
         ));
 
       Assert.Equal(nameof(client), actual.ParamName);
@@ -46,10 +46,10 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     public void Constructor_WithInvalidSocketClient_ShouldThrow()
     {
       IBinanceSocketClient socketClient = null;
-      var actual = Assert.Throws<ArgumentNullException>(() => new BinanceAssetResource(
+      var actual = Assert.Throws<ArgumentNullException>(() => new BinanceApiResource(
           Substitute.For<IBinanceClient>(),
           socketClient,
-          Substitute.For<ILogger<BinanceAssetResource>>()
+          Substitute.For<ILogger<BinanceApiResource>>()
         ));
 
       Assert.Equal(nameof(socketClient), actual.ParamName);
@@ -58,8 +58,8 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public void Constructor_WithInvalidLogger_ShouldThrow()
     {
-      ILogger<BinanceAssetResource> logger = null;
-      var actual = Assert.Throws<ArgumentNullException>(() => new BinanceAssetResource(
+      ILogger<BinanceApiResource> logger = null;
+      var actual = Assert.Throws<ArgumentNullException>(() => new BinanceApiResource(
           Substitute.For<IBinanceClient>(),
           Substitute.For<IBinanceSocketClient>(),
           logger
@@ -90,7 +90,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var instance = GetInstance();
       IEnumerable<string> symbols = null;
 
-      var actual = await Assert.ThrowsAsync<ArgumentNullException>(async () => await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token));
+      var actual = await Assert.ThrowsAsync<ArgumentNullException>(async () => await instance.GetCandlesticksAsync(symbols, interval, from, to, token));
 
       Assert.Equal(nameof(symbols), actual.ParamName);
     }
@@ -102,7 +102,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var symbols = new List<string>();
       var expectedErrorMessage = $"At least one symbol should be provided. (Parameter '{nameof(symbols)}')";
 
-      var actual = await Assert.ThrowsAsync<ArgumentException>(async () => await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token));
+      var actual = await Assert.ThrowsAsync<ArgumentException>(async () => await instance.GetCandlesticksAsync(symbols, interval, from, to, token));
 
       Assert.Equal(nameof(symbols), actual.ParamName);
       Assert.Equal(expectedErrorMessage, actual.Message);
@@ -111,11 +111,11 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WithValidParams_ShouldCallLoggerForInformation()
     {
-      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
+      var logger = Substitute.For<ILogger<BinanceApiResource>>();
       var instance = GetInstance(logger: logger);
       var expectedMessage = $"Fetching candlestick data from Binance for {symbols.Count()} symbols at '{Enum.GetName(typeof(Interval), (int)interval)}' interval from {from.ToShortDateString()} to {to.ToShortDateString()}.";
 
-      var actual = await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token);
+      var actual = await instance.GetCandlesticksAsync(symbols, interval, from, to, token);
 
       logger
         .Received()
@@ -134,7 +134,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
         .GetKlinesAsync(Arg.Any<string>(), KlineInterval.FifteenMinutes, from, to, ct: token)
         .Returns(ci => results);
 
-      var actual = await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token);
+      var actual = await instance.GetCandlesticksAsync(symbols, interval, from, to, token);
 
       Received.InOrder(async () =>
       {
@@ -147,7 +147,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WithErrors_ShouldCallLowWarningForErrors()
     {
-      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
+      var logger = Substitute.For<ILogger<BinanceApiResource>>();
       var market = Substitute.For<IBinanceClientSpotMarket>();
       var instance = GetInstance(spotClientMarket: market, logger: logger);
       var resultData = new List<IBinanceKline>();
@@ -162,7 +162,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
         .GetKlinesAsync(symbols.First().Replace("/", string.Empty), KlineInterval.FifteenMinutes, from, to, ct: token)
         .Returns(errorResult);
 
-      var actual = await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token);
+      var actual = await instance.GetCandlesticksAsync(symbols, interval, from, to, token);
 
       logger
         .ReceivedWithAnyArgs()
@@ -172,7 +172,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     [Fact]
     public async Task GetCandlestickDataForPairsAsync_WithSuccesses_ShouldReturnMappedResponse()
     {
-      var logger = Substitute.For<ILogger<BinanceAssetResource>>();
+      var logger = Substitute.For<ILogger<BinanceApiResource>>();
       var market = Substitute.For<IBinanceClientSpotMarket>();
       var instance = GetInstance(spotClientMarket: market, logger: logger);
       var candle1 = Substitute.For<IBinanceKline>();
@@ -230,7 +230,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
         .TradeCount
         .Returns(888);
 
-      var actual = await instance.GetCandlestickDataForPairsAsync(symbols, interval, from, to, token);
+      var actual = await instance.GetCandlesticksAsync(symbols, interval, from, to, token);
 
       // Assert mapped response.
       foreach (var symbol in symbols)
@@ -258,10 +258,10 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       await instance.DisposeAsync();
     }
 
-    private BinanceAssetResource GetInstance(
+    private BinanceApiResource GetInstance(
         IBinanceClient client = null,
         IBinanceSocketClient socketClient = null,
-        ILogger<BinanceAssetResource> logger = null,
+        ILogger<BinanceApiResource> logger = null,
         IBinanceClientSpotMarket spotClientMarket = null
       )
     {
@@ -281,10 +281,10 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
         .GetKlinesAsync(Arg.Any<string>(), KlineInterval.FifteenMinutes, from, to, ct: token)
         .Returns(ci => results);
 
-      return new BinanceAssetResource(
+      return new BinanceApiResource(
           client ?? clientSubstritute,
           socketClient ?? Substitute.For<IBinanceSocketClient>(),
-          logger ?? Substitute.For<ILogger<BinanceAssetResource>>()
+          logger ?? Substitute.For<ILogger<BinanceApiResource>>()
         );
     }
   }

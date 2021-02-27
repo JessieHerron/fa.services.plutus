@@ -19,7 +19,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
   /// <summary>
   /// Binance-specific provider for asset's candlestick information.
   /// </summary>
-  public class BinanceAssetResource : IAssetResource, IAsyncDisposable
+  public class BinanceApiResource : ICandlestickResource, IAsyncDisposable
   {
     /// <summary>
     /// Exponential backoff based seconds value.
@@ -44,7 +44,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="client">Binance rest client.</param>
     /// <param name="socketClient">Binance socket client.</param>
     /// <param name="logger">Instance logger.</param>
-    public BinanceAssetResource(IBinanceClient client, IBinanceSocketClient socketClient, ILogger<BinanceAssetResource> logger)
+    public BinanceApiResource(IBinanceClient client, IBinanceSocketClient socketClient, ILogger<BinanceApiResource> logger)
     {
       _client = client.ThrowIfNull(nameof(client));
       _socketClient = socketClient.ThrowIfNull(nameof(socketClient));
@@ -77,7 +77,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="to">The end date of the range which to fetch data for.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>A dictionary with the pair as the key and the candlestick data as the value.</returns>
-    public async Task<IDictionary<string, IEnumerable<Candlestick>>> GetCandlestickDataForPairsAsync(IEnumerable<string> symbols, Interval interval, DateTime from, DateTime to, CancellationToken token)
+    public async Task<IDictionary<string, IEnumerable<Candlestick>>> GetCandlesticksAsync(IEnumerable<string> symbols, Interval interval, DateTime from, DateTime to, CancellationToken token)
     {
       if (!symbols.ThrowIfNull(nameof(symbols)).Any())
         throw new ArgumentException("At least one symbol should be provided.", nameof(symbols));

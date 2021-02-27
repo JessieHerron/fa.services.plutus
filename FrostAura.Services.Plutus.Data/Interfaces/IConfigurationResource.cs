@@ -16,11 +16,12 @@ namespace FrostAura.Services.Plutus.Data.Interfaces
     /// <param name="token">Cancellation token.</param>
     /// <returns>Exchange to use.</returns>
     Task<SupportedExchange> GetExchangeAsync(CancellationToken token);
+
     /// <summary>
     /// Get the pair list to use. 
     /// </summary>
     /// <param name="token">Cancellation token.</param>
     /// <returns>Pair list to use.</returns>
-    Task<IEnumerable<string>> GetPairsAsync(CancellationToken token);
+    Task<IEnumerable<string>> GetSymbolsAsync(CancellationToken token);
   }
 }

@@ -9,7 +9,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
   /// <summary>
   /// Configuration resource that uses options in the back-end.
   /// </summary>
-  public class IntegrationTestingStaticConfigurationResource : IConfigurationResource
+  public class StaticConfigurationResource : IConfigurationResource
   {
     /// <summary>
     /// Get the currently configured exchange use.
@@ -26,7 +26,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// </summary>
     /// <param name="token">Cancellation token.</param>
     /// <returns>Pair list to use.</returns>
-    public Task<IEnumerable<string>> GetPairsAsync(CancellationToken token)
+    public Task<IEnumerable<string>> GetSymbolsAsync(CancellationToken token)
     {
       var response = new List<string>
       {

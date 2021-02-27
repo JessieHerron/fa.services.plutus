@@ -27,7 +27,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// </summary>
     /// <param name="token">Cancellation token.</param>
     /// <returns>Pair list to use.</returns>
-    public Task<IEnumerable<string>> GetPairsAsync(CancellationToken token)
+    public Task<IEnumerable<string>> GetSymbolsAsync(CancellationToken token)
     {
       throw new NotImplementedException();
     }

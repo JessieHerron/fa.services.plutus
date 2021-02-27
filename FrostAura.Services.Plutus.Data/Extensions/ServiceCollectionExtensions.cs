@@ -58,7 +58,8 @@ namespace FrostAura.Services.Plutus.Data.Extensions
         .AddSingleton<IConfigurationResource, OptionsConfigurationResource>()
         .AddSingleton<IBinanceSocketClient, BinanceSocketClient>()
         .AddTransient<IBinanceClient, BinanceClient>()
-        .AddSingleton<IAssetResource, BinanceAssetResource>();
+        .AddSingleton<ICandlestickResource, BinanceApiResource>()
+        .AddSingleton<ICandlestickCacheResource, FileSystemCandlestickCacheResource>();
     }
   }
 }
