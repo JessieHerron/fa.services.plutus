@@ -2,6 +2,7 @@
 using FrostAura.Services.Plutus.Data.Resources;
 using FrostAura.Services.Plutus.Data.Tests.Helpers;
 using NSubstitute;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,45 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
   public class FileSystemCandlestickCacheResourceTests
   {
     private CancellationToken _token = CancellationToken.None;
+
+    [Fact]
+    public void Constructor_WithInvalidFileResource_ShouldThrow()
+    {
+      IFileResource fileResource = null;
+      var directoryResource = Substitute.For<IDirectoryResource>();
+      var configurationResource = Substitute.For<IConfigurationResource>();
+
+      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource));
+
+      Assert.NotNull(actual);
+      Assert.Equal(nameof(fileResource), actual.ParamName);
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidDirectoryResource_ShouldThrow()
+    {
+      var fileResource = Substitute.For<IFileResource>();
+      IDirectoryResource directoryResource = null;
+      var configurationResource = Substitute.For<IConfigurationResource>();
+
+      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource));
+
+      Assert.NotNull(actual);
+      Assert.Equal(nameof(directoryResource), actual.ParamName);
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidConfigurationResource_ShouldThrow()
+    {
+      var fileResource = Substitute.For<IFileResource>();
+      var directoryResource = Substitute.For<IDirectoryResource>();
+      IConfigurationResource configurationResource = null;
+
+      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource));
+
+      Assert.NotNull(actual);
+      Assert.Equal(nameof(configurationResource), actual.ParamName);
+    }
 
     [Fact]
     public void Constructor_WithValidParams_ShouldConstruct()
