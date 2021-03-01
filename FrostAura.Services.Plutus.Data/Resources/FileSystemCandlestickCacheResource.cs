@@ -107,16 +107,19 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <summary>
     /// Persist a given request item to disk.
     /// </summary>
-    /// <param name="Symbol">Symbol the request is for. E.g. ETHBTC</param>
-    /// <param name="Interval">The interval / data resolution of the request.</param>
-    /// <param name="Data">The candlestick information for the provided symbol.</param>
+    /// <param name="symbol">Symbol the request is for. E.g. ETHBTC</param>
+    /// <param name="interval">The interval / data resolution of the request.</param>
+    /// <param name="data">The candlestick information for the provided symbol.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns></returns>
-    private Task WriteCandlestickRequestItemToFileAsync(string Symbol, Interval Interval, IEnumerable<Candlestick> Data, CancellationToken token)
+    private Task WriteCandlestickRequestItemToFileAsync(string symbol, Interval interval, IEnumerable<Candlestick> data, CancellationToken token)
     {
-      var intervalDirectory = Path.Combine(_cacheDirectoryPath, Interval.ToString());
-      var filePath = Path.Combine(intervalDirectory, $"{Symbol.Replace("/", string.Empty)}.txt");
-      var content = JsonConvert.SerializeObject(Data);
+      symbol.ThrowIfNullOrWhitespace(nameof(symbol));
+      data.ThrowIfNull(nameof(data));
+
+      var intervalDirectory = Path.Combine(_cacheDirectoryPath, interval.ToString());
+      var filePath = Path.Combine(intervalDirectory, $"{symbol.Replace("/", string.Empty)}.txt");
+      var content = JsonConvert.SerializeObject(data);
 
       return _fileResource.WriteAllTextAsync(filePath, content, token);
     }

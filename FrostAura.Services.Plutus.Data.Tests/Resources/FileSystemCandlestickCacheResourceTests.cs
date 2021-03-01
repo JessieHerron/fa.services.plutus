@@ -15,7 +15,7 @@ using Xunit;
 
 namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
-  public class FileSystemCandlestickCacheResourceTests
+  public partial class FileSystemCandlestickCacheResourceTests
   {
     private CancellationToken _token = CancellationToken.None;
     private readonly string _cacheDirectory = "cache";
