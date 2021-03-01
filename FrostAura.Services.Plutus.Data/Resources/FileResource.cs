@@ -1,0 +1,13 @@
+﻿using FrostAura.Services.Plutus.Data.Interfaces;
+using System.Diagnostics.CodeAnalysis;
+
+namespace FrostAura.Services.Plutus.Data.Resources
+{
+  /// <summary>
+  /// A provider for accessing the file system.
+  /// </summary>
+  [ExcludeFromCodeCoverage]
+  public class FileResource : IFileResource
+  {
+  }
+}

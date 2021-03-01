@@ -1,6 +1,7 @@
 ﻿using FrostAura.Services.Plutus.Data.Interfaces;
 using FrostAura.Services.Plutus.Shared.Consts;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,6 +10,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
   /// <summary>
   /// Configuration resource that uses options in the back-end.
   /// </summary>
+  [ExcludeFromCodeCoverage]
   public class StaticConfigurationResource : IConfigurationResource
   {
     /// <summary>
@@ -18,6 +20,8 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <returns>Configured exchange.</returns>
     public Task<SupportedExchange> GetExchangeAsync(CancellationToken token)
     {
+      token.ThrowIfCancellationRequested();
+
       return Task.FromResult(SupportedExchange.Binance);
     }
 
@@ -28,6 +32,8 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <returns>Pair list to use.</returns>
     public Task<IEnumerable<string>> GetSymbolsAsync(CancellationToken token)
     {
+      token.ThrowIfCancellationRequested();
+
       var response = new List<string>
       {
         "RCN/BTC",
@@ -88,6 +94,18 @@ namespace FrostAura.Services.Plutus.Data.Resources
       };
 
       return Task.FromResult((IEnumerable<string>)response);
+    }
+
+    /// <summary>
+    /// Get the directory path relative to the assembly to use when persisting symbols cache to the file system.
+    /// </summary>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>Directory path relative to the assembly to use when persisting symbols cache to the file system.</returns>
+    public Task<string> GetRelativeDirectoryPathForSymbolCaching(CancellationToken token)
+    {
+      token.ThrowIfCancellationRequested();
+
+      return Task.FromResult("cache/symbols");
     }
   }
 }

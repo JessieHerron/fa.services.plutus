@@ -1,8 +1,11 @@
-﻿using FrostAura.Services.Plutus.Data.Interfaces;
+﻿using FrostAura.Libraries.Core.Extensions.Validation;
+using FrostAura.Services.Plutus.Data.Interfaces;
 using FrostAura.Services.Plutus.Shared.Consts;
 using FrostAura.Services.Plutus.Shared.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,13 +17,48 @@ namespace FrostAura.Services.Plutus.Data.Resources
   public class FileSystemCandlestickCacheResource : ICandlestickCacheResource
   {
     /// <summary>
+    /// Provider for accessing the file system.
+    /// </summary>
+    private readonly IFileResource _fileResource;
+    /// <summary>
+    /// Provider for accessing the directory file system.
+    /// </summary>
+    private readonly IDirectoryResource _directoryResource;
+    /// <summary>
+    /// Configuration resource accessor used for providing various configuration from a respected source.
+    /// </summary>
+    private readonly IConfigurationResource _configurationResource;
+    /// <summary>
+    /// Full cache directory path to use.
+    /// </summary>
+    private string _cacheDirectoryPath;
+
+    /// <summary>
+    /// Inject dependencies via DI.
+    /// </summary>
+    /// <param name="fileResource">Provider for accessing the file system.</param>
+    /// <param name="directoryResource">Provider for accessing the directory file system.</param>
+    /// <param name="configurationResource">Configuration resource accessor used for providing various configuration from a respected source.</param>
+    public FileSystemCandlestickCacheResource(IFileResource fileResource, IDirectoryResource directoryResource, IConfigurationResource configurationResource)
+    {
+      _fileResource = fileResource.ThrowIfNull(nameof(fileResource));
+      _directoryResource = directoryResource.ThrowIfNull(nameof(directoryResource));
+      _configurationResource = configurationResource.ThrowIfNull(nameof(configurationResource));
+    }
+
+    /// <summary>
     /// Initialize the asset resource async in order to allow for bootstrapping, subscriptions etc operations to occur.
     /// </summary>
     /// <param name="token">Cancellation token.</param>
     /// <returns></returns>
-    public Task InitializeAsync(CancellationToken token)
+    public async Task InitializeAsync(CancellationToken token)
     {
-      throw new NotImplementedException();
+      var relativeCacheDirectoryPath = await _configurationResource.GetRelativeDirectoryPathForSymbolCaching(token);
+      var executingAssemblyPath = GetType()
+        .Assembly
+        .Location;
+
+      _cacheDirectoryPath = Path.Combine(Path.GetDirectoryName(executingAssemblyPath), relativeCacheDirectoryPath);
     }
 
     /// <summary>

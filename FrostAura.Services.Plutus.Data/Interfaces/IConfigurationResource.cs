@@ -23,5 +23,12 @@ namespace FrostAura.Services.Plutus.Data.Interfaces
     /// <param name="token">Cancellation token.</param>
     /// <returns>Pair list to use.</returns>
     Task<IEnumerable<string>> GetSymbolsAsync(CancellationToken token);
+
+    /// <summary>
+    /// Get the directory path relative to the assembly to use when persisting symbols cache to the file system.
+    /// </summary>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>Directory path relative to the assembly to use when persisting symbols cache to the file system.</returns>
+    Task<string> GetRelativeDirectoryPathForSymbolCaching(CancellationToken token);
   }
 }
