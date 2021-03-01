@@ -14,7 +14,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
 {
   public partial class FileSystemCandlestickCacheResourceTests
   {
-    private const string SKIP_JUSTIFICATION_MESSAGE = null; // "Skipping due to being a long running integration test.";
+    private const string SKIP_JUSTIFICATION_MESSAGE = "Skipping due to being a long running integration test.";
 
     [Fact(Skip = SKIP_JUSTIFICATION_MESSAGE)]
     public async Task SetCandlesticksAsync_WithRealRequest_ShouldPersistEachSymbolsDataToFile()
