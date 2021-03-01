@@ -92,6 +92,42 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       Assert.Equal(expectedFullCacheDirectoryPath, actual);
     }
 
+    [Fact]
+    public async Task InitializeAsync_WithExistingDirectory_ShouldNotCallCreateDirectoryOnDirectoryResource()
+    {
+      var directoryResource = Substitute.For<IDirectoryResource>();
+      var instance = GetInstance(directoryResource: directoryResource);
+      var directoryExists = true;
+
+      directoryResource
+        .Exists(default)
+        .ReturnsForAnyArgs(directoryExists);
+
+      await instance.InitializeAsync(_token);
+
+      directoryResource
+        .DidNotReceiveWithAnyArgs()
+        .CreateDirectory(default);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WithNonExistingDirectory_ShouldCallCreateDirectoryOnDirectoryResource()
+    {
+      var directoryResource = Substitute.For<IDirectoryResource>();
+      var instance = GetInstance(directoryResource: directoryResource);
+      var directoryExists = false;
+
+      directoryResource
+        .Exists(default)
+        .ReturnsForAnyArgs(directoryExists);
+
+      await instance.InitializeAsync(_token);
+
+      directoryResource
+        .ReceivedWithAnyArgs()
+        .CreateDirectory(default);
+    }
+
     private FileSystemCandlestickCacheResource GetInstance(
       IFileResource fileResource = null, 
       IDirectoryResource directoryResource = null,

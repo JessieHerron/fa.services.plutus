@@ -58,6 +58,10 @@ namespace FrostAura.Services.Plutus.Data.Resources
         .Location;
 
       _cacheDirectoryPath = Path.Combine(Path.GetDirectoryName(executingAssemblyPath), relativeCacheDirectoryPath);
+
+      if (_directoryResource.Exists(_cacheDirectoryPath)) return;
+
+      _directoryResource.CreateDirectory(_cacheDirectoryPath);
     }
 
     /// <summary>
