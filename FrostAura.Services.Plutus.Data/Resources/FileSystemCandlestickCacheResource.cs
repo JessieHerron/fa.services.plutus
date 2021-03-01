@@ -2,9 +2,11 @@
 using FrostAura.Services.Plutus.Data.Interfaces;
 using FrostAura.Services.Plutus.Shared.Consts;
 using FrostAura.Services.Plutus.Shared.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -86,7 +88,37 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <returns></returns>
     public Task SetCandlesticksAsync(IEnumerable<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)> request, CancellationToken token)
     {
-      throw new NotImplementedException();
+      if (!request.ThrowIfNull(nameof(request)).Any()) throw new ArgumentException("Request can not be empty.", nameof(request));
+
+      // Ensure that a directory exists for each of the intervals.
+      request
+        .Select(r => r.Interval)
+        .Distinct()
+        .Where(i => !_directoryResource.Exists(Path.Combine(_cacheDirectoryPath, i.ToString())))
+        .ToList()
+        .ForEach(i => _directoryResource.CreateDirectory(Path.Combine(_cacheDirectoryPath, i.ToString())));
+
+      var fileWriteTasks = request
+        .Select(r => WriteCandlestickRequestItemToFileAsync(r.Symbol, r.Interval, r.Data, token));
+
+      return Task.WhenAll(fileWriteTasks);
+    }
+
+    /// <summary>
+    /// Persist a given request item to disk.
+    /// </summary>
+    /// <param name="Symbol">Symbol the request is for. E.g. ETHBTC</param>
+    /// <param name="Interval">The interval / data resolution of the request.</param>
+    /// <param name="Data">The candlestick information for the provided symbol.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns></returns>
+    private Task WriteCandlestickRequestItemToFileAsync(string Symbol, Interval Interval, IEnumerable<Candlestick> Data, CancellationToken token)
+    {
+      var intervalDirectory = Path.Combine(_cacheDirectoryPath, Interval.ToString());
+      var filePath = Path.Combine(intervalDirectory, $"{Symbol.Replace("/", string.Empty)}.txt");
+      var content = JsonConvert.SerializeObject(Data);
+
+      return _fileResource.WriteAllTextAsync(filePath, content, token);
     }
   }
 }
