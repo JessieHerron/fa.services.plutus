@@ -6,6 +6,9 @@ namespace FrostAura.Services.Plutus.Data.Resources
   /// <summary>
   /// A provider for predicting timeseries prices for symbols.
   /// </summary>
+  /// <remarks>
+  /// ML.Net Timeseries Documentation: https://github.com/dotnet/machinelearning-samples/tree/master/samples/csharp/getting-started/Regression_TaxiFarePrediction
+  /// </remarks>
   public class MLNetSymbolPricePredictionResource : ISymbolPricePredictionResource
   {
     /// <summary>
