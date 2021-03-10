@@ -60,7 +60,8 @@ namespace FrostAura.Services.Plutus.Data.Extensions
         .AddSingleton<ICandlestickResource, BinanceApiResource>()
         .AddSingleton<ICandlestickCacheResource, FileSystemCandlestickCacheResource>()
         .AddSingleton<IFileResource, FileResource>()
-        .AddSingleton<IDirectoryResource, DirectoryResource>();
+        .AddSingleton<IDirectoryResource, DirectoryResource>()
+        .AddSingleton<ISymbolPricePredictionResource, MLNetSymbolPricePredictionResource>();
     }
   }
 }
