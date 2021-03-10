@@ -16,5 +16,20 @@ namespace FrostAura.Services.Plutus.Data.Interfaces
     /// <param name="token">The token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the asynchronous write operation.</returns>
     Task WriteAllTextAsync(string path, string contents, CancellationToken token);
+
+    /// <summary>
+    /// Asynchronously opens a text file, reads all the text in the file, and then closes the file.
+    /// </summary>
+    /// <param name="path">The file to open for reading.</param>
+    /// <param name="token">The token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous read operation, which wraps the string containing all text in the file.</returns>
+    Task<string> ReadAllTextAsync(string path, CancellationToken token);
+
+    /// <summary>
+    /// Determines whether the specified file exists.
+    /// </summary>
+    /// <param name="path">The file to check.</param>
+    /// <returns> True if the caller has the required permissions and path contains the name of an existing file; otherwise, false. This method also returns false if path is null, an invalid path, or a zero-length string. If the caller does not have sufficient permissions to read the specified file, no exception is thrown and the method returns false regardless of the existence of path.</returns>
+    bool Exists(string path);
   }
 }

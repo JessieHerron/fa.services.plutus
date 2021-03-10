@@ -75,9 +75,16 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="to">The end date of the range which to fetch data for.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>A dictionary with the pair as the key and the candlestick data as the value.</returns>
-    public Task<IDictionary<string, IEnumerable<Candlestick>>> GetCandlesticksAsync(IEnumerable<string> symbols, Interval interval, DateTime from, DateTime to, CancellationToken token)
+    public async Task<IDictionary<string, IEnumerable<Candlestick>>> GetCandlesticksAsync(IEnumerable<string> symbols, Interval interval, DateTime from, DateTime to, CancellationToken token)
     {
-      throw new NotImplementedException();
+      if (!symbols.ThrowIfNull(nameof(symbols)).Any()) throw new ArgumentException("Request can not be empty.", nameof(symbols));
+
+      var fileReadTasks = symbols
+        .Select(s => ReadCandlestickForSymbolFromFileAsync(s, interval, from, to, token));
+      var result = await Task.WhenAll(fileReadTasks);
+
+      return result
+        .ToDictionary(r => r.Symbol, r => r.Data);
     }
 
     /// <summary>
@@ -99,7 +106,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
         .ForEach(i => _directoryResource.CreateDirectory(Path.Combine(_cacheDirectoryPath, i.ToString())));
 
       var fileWriteTasks = request
-        .Select(r => WriteCandlestickRequestItemToFileAsync(r.Symbol, r.Interval, r.Data, token));
+        .Select(r => WriteCandlestickForSymbolToFileAsync(r.Symbol, r.Interval, r.Data, token));
 
       return Task.WhenAll(fileWriteTasks);
     }
@@ -112,7 +119,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="data">The candlestick information for the provided symbol.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns></returns>
-    private Task WriteCandlestickRequestItemToFileAsync(string symbol, Interval interval, IEnumerable<Candlestick> data, CancellationToken token)
+    public Task WriteCandlestickForSymbolToFileAsync(string symbol, Interval interval, IEnumerable<Candlestick> data, CancellationToken token)
     {
       symbol.ThrowIfNullOrWhitespace(nameof(symbol));
       data.ThrowIfNull(nameof(data));
@@ -122,6 +129,31 @@ namespace FrostAura.Services.Plutus.Data.Resources
       var content = JsonConvert.SerializeObject(data);
 
       return _fileResource.WriteAllTextAsync(filePath, content, token);
+    }
+
+    /// <summary>
+    /// Read candlestick information from the cache.
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="interval">Interval to indicate the resolution for which to fetch the data for.</param>
+    /// <param name="from">The starting date of the range which to fetch data for.</param>
+    /// <param name="to">The end date of the range which to fetch data for.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>Candlestick data as the value for the given symbol.</returns>
+    public async Task<(string Symbol, IEnumerable<Candlestick> Data)> ReadCandlestickForSymbolFromFileAsync(string symbol, Interval interval, DateTime from, DateTime to, CancellationToken token)
+    {
+      symbol.ThrowIfNullOrWhitespace(nameof(symbol));
+
+      var intervalDirectory = Path.Combine(_cacheDirectoryPath, interval.ToString());
+      var filePath = Path.Combine(intervalDirectory, $"{symbol.Replace("/", string.Empty)}.txt");
+
+      if (!_fileResource.Exists(filePath)) return (symbol, new List<Candlestick>());
+
+      var content = await _fileResource.ReadAllTextAsync(filePath, token);
+      var parsedContent = JsonConvert.DeserializeObject<IEnumerable<Candlestick>>(content);
+
+      return (symbol, parsedContent
+        .Where(c => c.OpenTime > from && c.CloseTime < to));
     }
   }
 }

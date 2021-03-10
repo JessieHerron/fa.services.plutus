@@ -248,6 +248,54 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       }
     }
 
+    [Fact]
+    public async Task WriteCandlestickForSymbolToFileAsync_WithInvalidSymbol_ShouldThrow()
+    {
+      throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task WriteCandlestickForSymbolToFileAsync_WithInvalidData_ShouldThrow()
+    {
+      throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task WriteCandlestickForSymbolToFileAsync_WithValidParams_ShouldWriteAllTextAsync()
+    {
+      throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task ReadCandlestickForSymbolFromFileAsync_WithInvalidSymbol_ShouldThrow()
+    {
+      throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task ReadCandlestickForSymbolFromFileAsync_WithValidParams_ShouldCheckFileExists()
+    {
+      throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task ReadCandlestickForSymbolFromFileAsync_WithNonExistingFile_ShouldReturnEmpty()
+    {
+      throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task ReadCandlestickForSymbolFromFileAsync_WithExistingFile_ShouldReadAllTextAsync()
+    {
+      throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task ReadCandlestickForSymbolFromFileAsync_WithExistingFile_ShouldReturnSymbolAndResults()
+    {
+      throw new NotImplementedException();
+    }
+
     private FileSystemCandlestickCacheResource GetInstance(
       IFileResource fileResource = null,
       IDirectoryResource directoryResource = null,
