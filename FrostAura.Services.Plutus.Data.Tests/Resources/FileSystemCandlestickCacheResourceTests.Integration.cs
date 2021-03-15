@@ -2,11 +2,8 @@
 using FrostAura.Services.Plutus.Data.Resources;
 using FrostAura.Services.Plutus.Shared.Consts;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using NSubstitute;
 using System;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -24,14 +21,17 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var fileResource = new FileResource();
       var configurationResource = new StaticConfigurationResource();
       var candlestickResource = new BinanceApiResource(new BinanceClient(), new BinanceSocketClient(), binanceLogger);
-      var instance = new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource);
+      var instance = new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource, candlestickResource);
       var symbols = await configurationResource.GetSymbolsAsync(_token);
-      var candlestickData = await candlestickResource.GetCandlesticksAsync(symbols, Interval.FifteenMinutes, DateTime.UtcNow.AddYears(-1), DateTime.UtcNow, _token);
-      var request = candlestickData
-        .Select(c => (Symbol: c.Key, Interval: Interval.FifteenMinutes, Data: c.Value));
 
       await instance.InitializeAsync(_token);
-      await instance.SetCandlesticksAsync(request, _token);
+
+      var actual = await instance.GetCandlesticksAsync(symbols, Interval.FifteenMinutes, DateTime.UtcNow.AddYears(-1), DateTime.UtcNow, _token);
+
+      foreach (var symbol in actual.Keys)
+      {
+        Assert.NotEmpty(actual[symbol]);
+      }
     }
   }
 }

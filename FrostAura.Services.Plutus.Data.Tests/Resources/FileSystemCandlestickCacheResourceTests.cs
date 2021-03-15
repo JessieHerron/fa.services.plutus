@@ -8,7 +8,6 @@ using NSubstitute;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -26,8 +25,9 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       IFileResource fileResource = null;
       var directoryResource = Substitute.For<IDirectoryResource>();
       var configurationResource = Substitute.For<IConfigurationResource>();
+      var candlestickResource = Substitute.For<ICandlestickResource>();
 
-      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource));
+      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource, candlestickResource));
 
       Assert.NotNull(actual);
       Assert.Equal(nameof(fileResource), actual.ParamName);
@@ -39,8 +39,9 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var fileResource = Substitute.For<IFileResource>();
       IDirectoryResource directoryResource = null;
       var configurationResource = Substitute.For<IConfigurationResource>();
+      var candlestickResource = Substitute.For<ICandlestickResource>();
 
-      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource));
+      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource, candlestickResource));
 
       Assert.NotNull(actual);
       Assert.Equal(nameof(directoryResource), actual.ParamName);
@@ -52,11 +53,26 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var fileResource = Substitute.For<IFileResource>();
       var directoryResource = Substitute.For<IDirectoryResource>();
       IConfigurationResource configurationResource = null;
+      var candlestickResource = Substitute.For<ICandlestickResource>();
 
-      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource));
+      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource, candlestickResource));
 
       Assert.NotNull(actual);
       Assert.Equal(nameof(configurationResource), actual.ParamName);
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidCandlestickResource_ShouldThrow()
+    {
+      var fileResource = Substitute.For<IFileResource>();
+      var directoryResource = Substitute.For<IDirectoryResource>();
+      var configurationResource = Substitute.For<IConfigurationResource>();
+      ICandlestickResource candlestickResource = null;
+
+      var actual = Assert.Throws<ArgumentNullException>(() => new FileSystemCandlestickCacheResource(fileResource, directoryResource, configurationResource, candlestickResource));
+
+      Assert.NotNull(actual);
+      Assert.Equal(nameof(candlestickResource), actual.ParamName);
     }
 
     [Fact]
@@ -135,171 +151,145 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
     }
 
     [Fact]
-    public async Task SetCandlesticksAsync_WithNullRequest_ShouldThrow()
+    public async Task GetCandlesticksAsync_WithInvalidSymbols_ShouldThrow()
     {
+      IEnumerable<string> symbols = default;
+      var interval = Interval.OneDay;
+      var fromDate = DateTime.UtcNow.AddYears(-1);
+      var toDate = DateTime.UtcNow;
       var instance = GetInstance();
-      IEnumerable<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)> request = null;
 
-      var actual = await Assert.ThrowsAsync<ArgumentNullException>(async () => await instance.SetCandlesticksAsync(request, _token));
+      var actual = await Assert.ThrowsAsync<ArgumentNullException>(async () => await instance.GetCandlesticksAsync(symbols, interval, fromDate, toDate, _token));
 
-      Assert.NotNull(actual);
-      Assert.Equal(nameof(request), actual.ParamName);
+      Assert.Equal(nameof(symbols), actual.ParamName);
     }
 
     [Fact]
-    public async Task SetCandlesticksAsync_WithEmptyRequest_ShouldThrow()
+    public async Task GetCandlesticksAsync_WithEmptySymbols_ShouldThrow()
     {
+      var symbols = new List<string>();
+      var interval = Interval.OneDay;
+      var fromDate = DateTime.UtcNow.AddYears(-1);
+      var toDate = DateTime.UtcNow;
+      var expectedError = "Request can not be empty.";
       var instance = GetInstance();
-      var request = new List<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)>();
 
-      var actual = await Assert.ThrowsAsync<ArgumentException>(async () => await instance.SetCandlesticksAsync(request, _token));
+      var actual = await Assert.ThrowsAsync<ArgumentException>(async () => await instance.GetCandlesticksAsync(symbols, interval, fromDate, toDate, _token));
 
-      Assert.NotNull(actual);
-      Assert.Equal(nameof(request), actual.ParamName);
+      Assert.Equal(nameof(symbols), actual.ParamName);
+      Assert.StartsWith(expectedError, actual.Message);
     }
 
     [Fact]
-    public async Task SetCandlesticksAsync_WithValidRequest_ShouldCheckExistenceOfEachIntervalDirectory()
+    public async Task GetCandlesticksAsync_WithFromDateGreaterThanToDate_ShouldThrow()
     {
-      var directoryResource = Substitute.For<IDirectoryResource>();
-      var instance = GetInstance(directoryResource: directoryResource);
-      var request = new List<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)>
-      {
-        ("RCN/BTC", Interval.FifteenMinutes, new List<Candlestick>()),
-        ("LRC/BTC", Interval.OneHour, new List<Candlestick>()),
-        ("XRP/BTC", Interval.FifteenMinutes, new List<Candlestick>())
-      };
+      var symbols = new List<string> { "ETHBTC" };
+      var interval = Interval.OneDay;
+      var fromDate = DateTime.UtcNow;
+      var toDate = DateTime.UtcNow.AddYears(-1);
+      var expectedError = "The from date is required to be before the to date.";
+      var instance = GetInstance();
 
-      await instance.InitializeAsync(_token);
-      await instance.SetCandlesticksAsync(request, _token);
+      var actual = await Assert.ThrowsAsync<ArgumentException>(async () => await instance.GetCandlesticksAsync(symbols, interval, fromDate, toDate, _token));
 
-      foreach (var interval in request
-        .Select(r => r.Interval))
-      {
-        directoryResource
-          .Received()
-          .Exists(Arg.Is<string>(s => s.EndsWith(interval.ToString())));
-      }
+      Assert.StartsWith(expectedError, actual.Message);
     }
 
     [Fact]
-    public async Task SetCandlesticksAsync_WithNonExistingIntervalDirectories_ShouldCreateDirectoriesForIntervals()
+    public async Task GetCandlesticksAsync_WithValidParams_ShouldCheckIfFileExistsForEachSymbol()
     {
-      var directoryResource = Substitute.For<IDirectoryResource>();
-      var instance = GetInstance(directoryResource: directoryResource);
-      var request = new List<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)>
+      var fileProvider = Substitute.For<IFileResource>();
+      var symbol = "ETHBTC";
+      var symbols = new List<string> { symbol };
+      var interval = Interval.OneDay;
+      var fromDate = DateTime.UtcNow.AddYears(-1);
+      var toDate = DateTime.UtcNow;
+      var expectedFileName = $"{symbol.Replace("/", string.Empty)}.txt";
+      var expectedContentFromFile = new List<Candlestick>
       {
-        ("RCN/BTC", Interval.FifteenMinutes, new List<Candlestick>()),
-        ("LRC/BTC", Interval.OneHour, new List<Candlestick>()),
-        ("XRP/BTC", Interval.FifteenMinutes, new List<Candlestick>())
-      };
-
-      directoryResource
-        .Exists(default)
-        .ReturnsForAnyArgs(false);
-
-      await instance.InitializeAsync(_token);
-      await instance.SetCandlesticksAsync(request, _token);
-
-      foreach (var interval in request
-        .Select(r => r.Interval))
-      {
-        directoryResource
-          .Received()
-          .CreateDirectory(Arg.Is<string>(s => s.EndsWith(interval.ToString())));
-      }
-    }
-
-    [Fact]
-    public async Task SetCandlesticksAsync_WithValidRequest_ShouldPersistEachSymbolsDataToFile()
-    {
-      var directoryResource = Substitute.For<IDirectoryResource>();
-      var fileResource = Substitute.For<IFileResource>();
-      var instance = GetInstance(directoryResource: directoryResource, fileResource: fileResource);
-      var request = new List<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)>
-      {
-        ("RCN/BTC", Interval.FifteenMinutes, new List<Candlestick>
+        new Candlestick
         {
-          new Candlestick
-          {
-            Volume = 1234,
-            TradeCount = 5678
-          }
-        }),
-        ("LRC/BTC", Interval.OneHour, new List<Candlestick>()),
-        ("XRP/BTC", Interval.FifteenMinutes, new List<Candlestick>())
+          OpenTime = fromDate.AddDays(10),
+          CloseTime = toDate.AddDays(-1)
+        }
       };
+      var instance = GetInstance(fileResource: fileProvider);
 
-      directoryResource
-        .Exists(default)
-        .ReturnsForAnyArgs(true);
+      fileProvider
+        .Exists(Arg.Is<string>(f => f.EndsWith(expectedFileName)))
+        .Returns(true);
+      fileProvider
+        .ReadAllTextAsync(default, _token)
+        .ReturnsForAnyArgs(JsonConvert.SerializeObject(expectedContentFromFile));
 
       await instance.InitializeAsync(_token);
-      await instance.SetCandlesticksAsync(request, _token);
+      await instance.GetCandlesticksAsync(symbols, interval, fromDate, toDate, _token);
 
-      foreach (var requestItem in request)
+      Received.InOrder(() =>
       {
-        var expectedFileEnding = Path.Combine(requestItem.Interval.ToString(), $"{requestItem.Symbol.Replace("/", string.Empty)}.txt");
-        var expectedContent = JsonConvert.SerializeObject(requestItem.Data);
-
-        fileResource
-          .Received()
-          .WriteAllTextAsync(Arg.Is<string>(s => s.EndsWith(expectedFileEnding)), expectedContent, _token);
-      }
+        fileProvider.Exists(Arg.Is<string>(f => f.EndsWith(expectedFileName)));
+      });
     }
 
     [Fact]
-    public async Task WriteCandlestickForSymbolToFileAsync_WithInvalidSymbol_ShouldThrow()
+    public async Task GetCandlesticksAsync_WithExistingFile_ShouldReadSymbolContentFromFile()
+    {
+      var fileProvider = Substitute.For<IFileResource>();
+      var symbol = "ETHBTC";
+      var symbols = new List<string> { symbol };
+      var interval = Interval.OneDay;
+      var fromDate = DateTime.UtcNow.AddYears(-1);
+      var toDate = DateTime.UtcNow;
+      var expectedFileName = $"{symbol.Replace("/", string.Empty)}.txt";
+      var expectedContentFromFile = new List<Candlestick>
+      {
+        new Candlestick
+        {
+          OpenTime = fromDate.AddDays(10),
+          CloseTime = toDate.AddDays(-1)
+        }
+      };
+      var instance = GetInstance(fileResource: fileProvider);
+
+      fileProvider
+        .Exists(Arg.Is<string>(f => f.EndsWith(expectedFileName)))
+        .Returns(true);
+      fileProvider
+        .ReadAllTextAsync(default, _token)
+        .ReturnsForAnyArgs(JsonConvert.SerializeObject(expectedContentFromFile));
+
+      await instance.InitializeAsync(_token);
+      await instance.GetCandlesticksAsync(symbols, interval, fromDate, toDate, _token);
+      Received.InOrder(() =>
+      {
+        fileProvider.Exists(Arg.Is<string>(f => f.EndsWith(expectedFileName)));
+        fileProvider.ReadAllTextAsync(Arg.Is<string>(f => f.EndsWith(expectedFileName)), _token);
+      });
+    }
+
+    [Fact]
+    public async Task GetCandlesticksAsync_WithNonExistingFile_ShouldFetchDataFromResource()
     {
       throw new NotImplementedException();
     }
 
     [Fact]
-    public async Task WriteCandlestickForSymbolToFileAsync_WithInvalidData_ShouldThrow()
+    public async Task GetCandlesticksAsync_AfterFetchingFromResource_ShouldPersistToFile()
     {
       throw new NotImplementedException();
     }
 
     [Fact]
-    public async Task WriteCandlestickForSymbolToFileAsync_WithValidParams_ShouldWriteAllTextAsync()
-    {
-      throw new NotImplementedException();
-    }
-
-    [Fact]
-    public async Task ReadCandlestickForSymbolFromFileAsync_WithInvalidSymbol_ShouldThrow()
-    {
-      throw new NotImplementedException();
-    }
-
-    [Fact]
-    public async Task ReadCandlestickForSymbolFromFileAsync_WithValidParams_ShouldCheckFileExists()
-    {
-      throw new NotImplementedException();
-    }
-
-    [Fact]
-    public async Task ReadCandlestickForSymbolFromFileAsync_WithNonExistingFile_ShouldReturnEmpty()
-    {
-      throw new NotImplementedException();
-    }
-
-    [Fact]
-    public async Task ReadCandlestickForSymbolFromFileAsync_WithExistingFile_ShouldReadAllTextAsync()
-    {
-      throw new NotImplementedException();
-    }
-
-    [Fact]
-    public async Task ReadCandlestickForSymbolFromFileAsync_WithExistingFile_ShouldReturnSymbolAndResults()
+    public async Task GetCandlesticksAsync_WithResultsFromCacheAndResource_ShouldReturnConcatResult()
     {
       throw new NotImplementedException();
     }
 
     private FileSystemCandlestickCacheResource GetInstance(
-      IFileResource fileResource = null,
-      IDirectoryResource directoryResource = null,
-      IConfigurationResource configurationResource = null)
+    IFileResource fileResource = null,
+    IDirectoryResource directoryResource = null,
+    IConfigurationResource configurationResource = null,
+    ICandlestickResource candlestickResource = null)
     {
       var mockedConfigurationResource = Substitute.For<IConfigurationResource>();
 
@@ -310,7 +300,8 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       return new FileSystemCandlestickCacheResource(
         fileResource ?? Substitute.For<IFileResource>(),
         directoryResource ?? Substitute.For<IDirectoryResource>(),
-        configurationResource ?? mockedConfigurationResource
+        configurationResource ?? mockedConfigurationResource,
+        candlestickResource ?? Substitute.For<ICandlestickResource>()
       );
     }
   }

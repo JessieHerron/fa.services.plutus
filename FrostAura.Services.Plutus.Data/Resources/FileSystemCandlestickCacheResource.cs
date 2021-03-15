@@ -30,6 +30,10 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// </summary>
     private readonly IConfigurationResource _configurationResource;
     /// <summary>
+    /// Resource to provide candlestick information from a respected source.
+    /// </summary>
+    private readonly ICandlestickResource _candlestickResource;
+    /// <summary>
     /// Full cache directory path to use.
     /// </summary>
     private string _cacheDirectoryPath;
@@ -40,11 +44,13 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="fileResource">Provider for accessing the file system.</param>
     /// <param name="directoryResource">Provider for accessing the directory file system.</param>
     /// <param name="configurationResource">Configuration resource accessor used for providing various configuration from a respected source.</param>
-    public FileSystemCandlestickCacheResource(IFileResource fileResource, IDirectoryResource directoryResource, IConfigurationResource configurationResource)
+    /// <param name="candlestickResource">Resource to provide candlestick information from a respected source.</param>
+    public FileSystemCandlestickCacheResource(IFileResource fileResource, IDirectoryResource directoryResource, IConfigurationResource configurationResource, ICandlestickResource candlestickResource)
     {
       _fileResource = fileResource.ThrowIfNull(nameof(fileResource));
       _directoryResource = directoryResource.ThrowIfNull(nameof(directoryResource));
       _configurationResource = configurationResource.ThrowIfNull(nameof(configurationResource));
+      _candlestickResource = candlestickResource.ThrowIfNull(nameof(candlestickResource));
     }
 
     /// <summary>
@@ -78,13 +84,50 @@ namespace FrostAura.Services.Plutus.Data.Resources
     public async Task<IDictionary<string, IEnumerable<Candlestick>>> GetCandlesticksAsync(IEnumerable<string> symbols, Interval interval, DateTime from, DateTime to, CancellationToken token)
     {
       if (!symbols.ThrowIfNull(nameof(symbols)).Any()) throw new ArgumentException("Request can not be empty.", nameof(symbols));
+      if (from > to) throw new ArgumentException("The from date is required to be before the to date.");
 
       var fileReadTasks = symbols
         .Select(s => ReadCandlestickForSymbolFromFileAsync(s, interval, from, to, token));
-      var result = await Task.WhenAll(fileReadTasks);
-
-      return result
+      var fileReadResults = await Task.WhenAll(fileReadTasks);
+      var symbolsWithMissingFileSystemData = fileReadResults
+        .Where(r => r.Data.Count() == 0)
+        .Select(r => r.Symbol);
+      var freshResultsFromResource = await FetchAndPersistSymbolsDataAsync(
+        symbolsWithMissingFileSystemData,
+        interval,
+        from,
+        to,
+        token);
+      var results = fileReadResults
+        .Where(r => r.Data.Any())
+        .Concat(freshResultsFromResource)
         .ToDictionary(r => r.Symbol, r => r.Data);
+
+      return results;
+    }
+
+    /// <summary>
+    /// Fetch data for symbols from the candlestick resource, persist it and return the populated response.
+    /// </summary>
+    /// <param name="symbols">Symbols to process.</param>
+    /// <param name="interval">Interval to indicate the resolution for which to fetch the data for.</param>
+    /// <param name="from">The starting date of the range which to fetch data for.</param>
+    /// <param name="to">The end date of the range which to fetch data for.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>Symbol with populated candlestick data.</returns>
+    private async Task<IEnumerable<(string Symbol, IEnumerable<Candlestick> Data)>> FetchAndPersistSymbolsDataAsync(IEnumerable<string> symbols, Interval interval, DateTime from, DateTime to, CancellationToken token)
+    {
+      if (!symbols.Any()) return new List<(string Symbol, IEnumerable<Candlestick> Data)>();
+
+      var resourceResults = await _candlestickResource.GetCandlesticksAsync(symbols, interval, from, to, token);
+      var persistenceRequest = resourceResults
+        .Select(r => (Symbol: r.Key, Interval: interval, Data: r.Value));
+      
+      await SetCandlesticksAsync(persistenceRequest, token);
+
+      return resourceResults
+        .Select(r => r.Key)
+        .Select(k => (Symbol: k, Data: resourceResults[k]));
     }
 
     /// <summary>
@@ -93,7 +136,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="request">Collection of symbols with their intervals and candlestick data.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns></returns>
-    public Task SetCandlesticksAsync(IEnumerable<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)> request, CancellationToken token)
+    private Task SetCandlesticksAsync(IEnumerable<(string Symbol, Interval Interval, IEnumerable<Candlestick> Data)> request, CancellationToken token)
     {
       if (!request.ThrowIfNull(nameof(request)).Any()) throw new ArgumentException("Request can not be empty.", nameof(request));
 
@@ -119,7 +162,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="data">The candlestick information for the provided symbol.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns></returns>
-    public Task WriteCandlestickForSymbolToFileAsync(string symbol, Interval interval, IEnumerable<Candlestick> data, CancellationToken token)
+    private Task WriteCandlestickForSymbolToFileAsync(string symbol, Interval interval, IEnumerable<Candlestick> data, CancellationToken token)
     {
       symbol.ThrowIfNullOrWhitespace(nameof(symbol));
       data.ThrowIfNull(nameof(data));
@@ -140,7 +183,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <param name="to">The end date of the range which to fetch data for.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>Candlestick data as the value for the given symbol.</returns>
-    public async Task<(string Symbol, IEnumerable<Candlestick> Data)> ReadCandlestickForSymbolFromFileAsync(string symbol, Interval interval, DateTime from, DateTime to, CancellationToken token)
+    private async Task<(string Symbol, IEnumerable<Candlestick> Data)> ReadCandlestickForSymbolFromFileAsync(string symbol, Interval interval, DateTime from, DateTime to, CancellationToken token)
     {
       symbol.ThrowIfNullOrWhitespace(nameof(symbol));
 
@@ -151,9 +194,10 @@ namespace FrostAura.Services.Plutus.Data.Resources
 
       var content = await _fileResource.ReadAllTextAsync(filePath, token);
       var parsedContent = JsonConvert.DeserializeObject<IEnumerable<Candlestick>>(content);
-
-      return (symbol, parsedContent
+      var result = (symbol, parsedContent
         .Where(c => c.OpenTime > from && c.CloseTime < to));
+
+      return result;
     }
   }
 }

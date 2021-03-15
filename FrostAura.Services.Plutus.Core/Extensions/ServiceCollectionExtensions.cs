@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using FrostAura.Services.Plutus.Core.Engines;
+using FrostAura.Services.Plutus.Core.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FrostAura.Services.Plutus.Core.Extensions
@@ -40,7 +42,8 @@ namespace FrostAura.Services.Plutus.Core.Extensions
     /// <returns>Application services collection.</returns>
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
-      return services;
+      return services
+        .AddSingleton<ISymbolPricePredictionEngine, MLNetSymbolPricePredictionEngine>();
     }
   }
 }

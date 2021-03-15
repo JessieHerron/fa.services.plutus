@@ -18,8 +18,4 @@
     <ProjectReference Include="..\FrostAura.Services.Plutus.Core\FrostAura.Services.Plutus.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Managers\" />
-  </ItemGroup>
-
 </Project>

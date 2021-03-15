@@ -5,8 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Engines\" />
-    <Folder Include="Interfaces\" />
     <Folder Include="Managers\" />
   </ItemGroup>
 
