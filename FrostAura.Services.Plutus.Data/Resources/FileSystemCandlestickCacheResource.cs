@@ -60,7 +60,7 @@ namespace FrostAura.Services.Plutus.Data.Resources
     /// <returns></returns>
     public async Task InitializeAsync(CancellationToken token)
     {
-      var relativeCacheDirectoryPath = await _configurationResource.GetRelativeDirectoryPathForSymbolCaching(token);
+      var relativeCacheDirectoryPath = await _configurationResource.GetRelativeDirectoryPathForSymbolCachingAsync(token);
       var executingAssemblyPath = GetType()
         .Assembly
         .Location;

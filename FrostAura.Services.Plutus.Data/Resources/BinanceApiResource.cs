@@ -122,11 +122,11 @@ namespace FrostAura.Services.Plutus.Data.Resources
               {
                 // TODO: Migrate this mapping to an automapper implementation.
                 OpenTime = i.OpenTime,
-                Open = i.Open,
-                High = i.High,
-                Low = i.Low,
-                Close = i.Close,
-                Volume = i.BaseVolume,
+                Open = (float)i.Open,
+                High = (float)i.High,
+                Low = (float)i.Low,
+                Close = (float)i.Close,
+                Volume = (float)i.BaseVolume,
                 CloseTime = i.CloseTime,
                 TradeCount = i.TradeCount
               });

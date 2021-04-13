@@ -104,7 +104,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var expectedFullCacheDirectoryPath = Path.Combine(expectedAssemblyPath, expectedCacheDirectory);
 
       configurationResource
-        .GetRelativeDirectoryPathForSymbolCaching(_token)
+        .GetRelativeDirectoryPathForSymbolCachingAsync(_token)
         .Returns(expectedCacheDirectory);
 
       await instance.InitializeAsync(_token);
@@ -294,7 +294,7 @@ namespace FrostAura.Services.Plutus.Data.Tests.Resources
       var mockedConfigurationResource = Substitute.For<IConfigurationResource>();
 
       mockedConfigurationResource
-        .GetRelativeDirectoryPathForSymbolCaching(_token)
+        .GetRelativeDirectoryPathForSymbolCachingAsync(_token)
         .Returns(_cacheDirectory);
 
       return new FileSystemCandlestickCacheResource(

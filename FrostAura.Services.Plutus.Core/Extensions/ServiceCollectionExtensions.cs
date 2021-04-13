@@ -43,7 +43,7 @@ namespace FrostAura.Services.Plutus.Core.Extensions
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
       return services
-        .AddSingleton<ISymbolPricePredictionEngine, MLNetSymbolPricePredictionEngine>();
+        .AddSingleton<ISymbolPriceForecastingEngine, MLNetSymbolPriceForecastingEngine>();
     }
   }
 }
