@@ -65,7 +65,7 @@ This allows for testing a given strategy against downloaded market data. See the
 - Running Multiple Strategies at Once
   - Simple Duplicate the entire folder with all the bot files (docker-compose.yml, user_data etc), for as many strategies you want to run.
   - Repeat the above configuration and running steps for each of those directories in seperate terminal windows. (Your exchange information would be the same for all bots. Your Telegram bot id should be different for all strategies).
-  - Remeber to adjust your stakes according to how many strategies you will be running concurrently. (Example, We allow 15 transactions by default for a given strategy (as seen in the config file) so you want to take your total BTC holdings and / ( 15 * how many strategies you plan to run) = stake )
+  - Remember to adjust your stakes according to how many strategies you will be running concurrently. (Example, We allow 15 transactions by default for a given strategy (as seen in the config file) so you want to take your total BTC holdings and / ( 15 * how many strategies you plan to run) = stake )
 ### Customization
 #### Strategies
 When creating your own strategies, follow the Freqtrade documentation to get going here: https://www.freqtrade.io/en/stable/strategy-customization/
